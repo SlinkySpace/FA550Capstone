@@ -11,8 +11,11 @@ import plotly.express as px
 # Run with: streamlit run app.py
 # ============================================================
 
-BASE = r"C:\Users\jorda\OneDrive\Desktop\ClaudeContracts\btc_kalshi"
-DATA_DIR = os.path.join(BASE, "data", "live", "derived")
+# ------------------------------------------------------------
+# Paths relative to this app file / repo directory
+# ------------------------------------------------------------
+APP_DIR = os.path.dirname(os.path.abspath(__file__))
+DATA_DIR = os.path.join(APP_DIR, "data", "live", "derived")
 
 ACTIVE_PATH = os.path.join(DATA_DIR, "microstructure_1s_active.parquet")
 EVENT_WINDOWS_PATH = os.path.join(DATA_DIR, "event_windows_large_move_30s.parquet")
@@ -296,13 +299,13 @@ st.write(
 try:
     active_df = load_active_data(ACTIVE_PATH)
 except Exception as e:
-    st.error(f"Could not load active dataset:\n{e}")
+    st.error(f"Could not load active dataset from {ACTIVE_PATH}:\n{e}")
     st.stop()
 
 try:
     event_df = load_event_windows(EVENT_WINDOWS_PATH)
 except Exception as e:
-    st.error(f"Could not load event-window dataset:\n{e}")
+    st.error(f"Could not load event-window dataset from {EVENT_WINDOWS_PATH}:\n{e}")
     st.stop()
 
 event_summary_df = load_event_summary_if_available(EVENT_SUMMARY_PATH)
