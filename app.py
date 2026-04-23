@@ -137,17 +137,28 @@ def filter_event_df(
 @st.cache_data(show_spinner=False)
 def build_overview_display_df(
     df: pd.DataFrame,
-    freq: str,
+    freq,
     start_date_str: str,
     end_date_str: str,
     regimes_key: tuple,
     symbols_key: tuple,
 ) -> pd.DataFrame:
     """
-    Aggregate for display only, after filtering.
+    Build overview display data after filtering.
+
+    If freq is None, return the raw filtered rows for the overview charts.
+    Otherwise, aggregate to the selected display frequency.
     """
     if df.empty:
         return pd.DataFrame()
+
+    if freq is None:
+        return (
+            df[["timestamp", "mid_price", "spread", "rv_60s", "trade_count", "symbol"]]
+            .copy()
+            .sort_values("timestamp")
+            .reset_index(drop=True)
+        )
 
     temp = df.copy()
     temp["display_ts"] = temp["timestamp"].dt.floor(freq)
@@ -231,16 +242,18 @@ def make_time_series(df: pd.DataFrame, y_col: str, title: str, y_label: str):
     if df.empty or y_col not in df.columns:
         return None
 
-    plot_df = df[["display_ts", y_col]].dropna().copy()
+    x_col = "display_ts" if "display_ts" in df.columns else "timestamp"
+
+    plot_df = df[[x_col, y_col]].dropna().copy()
     if plot_df.empty:
         return None
 
     fig = px.line(
         plot_df,
-        x="display_ts",
+        x=x_col,
         y=y_col,
         title=title,
-        labels={"display_ts": "Timestamp", y_col: y_label},
+        labels={x_col: "Timestamp", y_col: y_label},
     )
     fig.update_layout(height=300, margin=dict(l=20, r=20, t=50, b=20))
     return fig
@@ -360,11 +373,12 @@ selected_event_regimes = st.sidebar.multiselect(
 
 display_freq_label = st.sidebar.selectbox(
     "Overview chart aggregation",
-    options=["1 minute", "5 minutes", "15 minutes"],
-    index=1,
+    options=["No aggregation", "1 minute", "5 minutes", "15 minutes"],
+    index=2,
 )
 
 freq_map = {
+    "No aggregation": None,
     "1 minute": "1min",
     "5 minutes": "5min",
     "15 minutes": "15min",
@@ -458,7 +472,10 @@ with k4:
 # ============================================================
 
 st.subheader("Market Overview")
-st.caption(f"Overview charts are aggregated to {display_freq_label.lower()} for stability.")
+if display_freq is None:
+    st.caption("Overview charts are using the raw filtered active dataset.")
+else:
+    st.caption(f"Overview charts are aggregated to {display_freq_label.lower()} for stability.")
 
 c1, c2, c3 = st.columns(3)
 
